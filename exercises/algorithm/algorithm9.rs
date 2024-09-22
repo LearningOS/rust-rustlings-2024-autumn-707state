@@ -2,7 +2,6 @@
     heap
     This question requires you to implement a binary heap function
 */
-// I AM NOT DONE
 
 use std::cmp::Ord;
 use std::default::Default;
@@ -37,35 +36,32 @@ where
     }
 
     pub fn add(&mut self, value: T) {
+        self.items.push(value);
         self.count += 1;
-        if self.count >= self.items.len() {
-            self.items.push(T::default());
-        }
-        self.items[self.count] = value;
-        self.bubble_up(self.count);
+        self.up_heap(self.count);
     }
-    fn bubble_down(&mut self, idx: usize) {
-        let mut current_idx = idx;
-        while self.children_present(current_idx) {
-            let child_idx = self.smallest_child_idx(current_idx);
-            if (self.comparator)(&self.items[child_idx], &self.items[current_idx]) {
-                self.items.swap(current_idx, child_idx);
-                current_idx = child_idx;
+
+    fn up_heap(&mut self, mut idx: usize) {
+        while idx > 1 {
+            let parent_idx = self.parent_idx(idx); // 先计算出父节点索引
+            if (self.comparator)(&self.items[idx], &self.items[parent_idx]) {
+                self.items.swap(idx, parent_idx);
+                idx = parent_idx;
             } else {
                 break;
             }
         }
     }
-    fn bubble_up(&mut self, idx: usize) {
-        let mut current_idx = idx;
-        while current_idx > 1 {
-            let parent_idx = self.parent_idx(current_idx);
-            if (self.comparator)(&self.items[current_idx], &self.items[parent_idx]) {
-                self.items.swap(current_idx, parent_idx);
-                current_idx = parent_idx;
+
+    fn down_heap(&mut self, mut idx: usize) {
+        while self.children_present(idx) {
+            let smallest_child = self.smallest_child_idx(idx);
+            if (self.comparator)(&self.items[smallest_child], &self.items[idx]) {
+                self.items.swap(idx, smallest_child);
             } else {
                 break;
             }
+            idx = smallest_child;
         }
     }
     fn parent_idx(&self, idx: usize) -> usize {
@@ -87,22 +83,11 @@ where
     fn smallest_child_idx(&self, idx: usize) -> usize {
         let left = self.left_child_idx(idx);
         let right = self.right_child_idx(idx);
-
         if right <= self.count && (self.comparator)(&self.items[right], &self.items[left]) {
             right
         } else {
             left
         }
-    }
-    pub fn remove(&mut self) -> Option<T> {
-        if self.is_empty() {
-            return None;
-        }
-        let root = self.items[1].clone(); // Clone or move depending on T
-        self.items[1] = self.items[self.count];
-        self.count -= 1;
-        self.bubble_down(1);
-        Some(root)
     }
 }
 
@@ -123,12 +108,19 @@ where
 
 impl<T> Iterator for Heap<T>
 where
-    T: Default,
+    T: Default + Clone,
 {
     type Item = T;
 
     fn next(&mut self) -> Option<T> {
-        self.remove()
+        if self.is_empty() {
+            return None;
+        }
+        let result = self.items[1].clone();
+        self.items[1] = self.items.pop().unwrap_or_default();
+        self.count -= 1;
+        self.down_heap(1);
+        Some(result)
     }
 }
 
